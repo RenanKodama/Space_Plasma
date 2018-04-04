@@ -1,0 +1,94 @@
+
+#Universidade Tecnológica Federal do Paraná
+#Campus Campo Mourão
+
+#(DJ36O-ICO) - Desenvolvimento De Jogos
+
+#Descrição inicial do Conceito do Jogo
+#Renan Kodama Rodrigues 1602098
+
+
+
+
+Nome do Jogo: Space Plasma
+Gênero do Jogo: Tiro
+
+Tipos de Multi Player: Competitivo
+
+Cenario:
+    [             [   PLAYER01    ]                                                    ]
+    [                 [      ]                                                         ]
+    [                                                                                  ]
+    [                    ||                                                            ]
+    [                    ||                                                            ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [          [XXXX] [XXXX]                                                           ]
+    [          [XXXX] [XXXX]                                                           ]
+    [          [XXXX] [XXXX]                                                           ]
+    [                                                                                  ]
+    [          [XXXX] [XXXX]                                                           ]
+    [          [XXXX] [XXXX]                                                           ]
+    [          [XXXX] [XXXX]                                                           ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                      [S2S2] [ARMA]                               ]
+    [                                      [S2S2] [ARMA]                               ]
+    [                                      [S2S2] [ARMA]                               ]
+    [                                                                                  ]
+    [                                      [++++] [$$$$]                               ]
+    [                                      [++++] [$$$$]                               ]
+    [                                      [++++] [$$$$]                               ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                           [XXXX] [XXXX]          ]
+    [                                                           [XXXX] [XXXX]          ]
+    [                                                           [XXXX] [XXXX]          ]
+    [                                                                                  ]
+    [                                                           [XXXX] [XXXX]          ]
+    [                                                           [XXXX] [XXXX]          ]
+    [                                                           [XXXX] [XXXX]          ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                                                  ]
+    [                                                               ||                 ]
+    [                                                               ||                 ]
+    [                                                                                  ]
+    [                                                            [      ]              ]
+    [                                                        [   PLAYER02    ]         ]
+
+Descrição:
+    O jogo incia com os Players em suas posições e é finalizado quando um Player consegue
+    reduzir a vida de outro para 0. 
+
+    Movimentos:
+        Os Players terão apenas movimentos no eixo X e podem também atirar pelo eixo Y 
+        um no outro quando houver alguma entrada do teclado correspondente à ação   
+    
+
+    Colecionaveis:
+        UpSpeed = Aumenta a velocidade dos tiros por tempo limitado
+        Weapon02 = Aumento do numero de tiros 
+        Cash = Aumenta score do Player
+        Life = Aumenta a Vida do Player
+
+
+    Obstaculos ou Elementos:
+        Blocos quando destruidos podem gerar agluns itens especiais
+
+    Mecanismo de Pontuação: score, destruir blocos e coletar Cash aumentam a pontuação
+
+    Duração do Jogo: Finito
+
+    Numero de Mapas: 3 (Diferenciando a posição e quantidades de blocos de cada mapa)
+
