@@ -9,6 +9,7 @@
 
 */
 
+
 'use strict'
 
 
@@ -16,11 +17,26 @@ const config = {}
 var space
 var player1
 var player2
+var obstacles
+var adress_map = 'assets/Map01.txt'
+var map
+var hud
 
 config.RES_X = 800 
 config.RES_Y = 595
 config.SCALE = 0.12
+config.SPEED_X = 300
+config.SPEED_Y = 300
+config.LIMIT_X_LEFT = 25
+config.LIMIT_X_RIGHT = config.RES_X - 25 
+config.HEALTH = 5
+config.DAMEGE = 1
 
+config.MAX_BULLETS = 2
+config.VELOCITY_BULLETS = 800
+config.FIRE_RATE = 80
+config.ANGLE_VARIANCE = 3
+config.LIFE_BULLETS = 20
 
 
 
@@ -36,7 +52,11 @@ var game = new Phaser.Game(config.RES_X, config.RES_Y, Phaser.CANVAS,
 function preload() {
     game.load.image('Space', 'assets/Space.png')
     game.load.image('Plane01', 'assets/Plane01.png')
-}
+    game.load.image('Plane02', 'assets/Plane02.png')
+    game.load.image('Shot01', 'assets/Shot01.png')
+    game.load.image('Asteroid01','assets/Asteroid01.png')
+    game.load.text('map',adress_map)
+}   
 
 function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE)
@@ -48,208 +68,104 @@ function create() {
     space.scale.x = game.width/space.width
     space.scale.y = game.height/space.height
 
+    createMap()
 
-    player1 = createPlayer(game.width/2, game.height/2, 'Plane01', 0x00ff00, 'bottom', 
+    player1 = createPlayer(game.width/2, game.height/2, 'Plane01', 0x20ff50, 'bottom', 
         {   
             left: Phaser.Keyboard.LEFT,
             right: Phaser.Keyboard.RIGHT,
-            up: Phaser.Keyboard.UP,
-            down: Phaser.Keyboard.DOWN,
+            //up: Phaser.Keyboard.UP,
+            //down: Phaser.Keyboard.DOWN,
             fire: Phaser.Keyboard.L
         })
+
+    player2 =  createPlayer(game.width/2, game.height/2, 'Plane02', 0x54f594, 'top', 
+        {   
+            left: Phaser.Keyboard.A,
+            right: Phaser.Keyboard.S,
+            //up: Phaser.Keyboard.UP,
+            //down: Phaser.Keyboard.DOWN,
+            fire: Phaser.Keyboard.F
+    })
+
+    game.add.existing(player1)
+    game.add.existing(player2)
+
+    hud = {
+        text1: createHealthText(game.width*8/8.5, game.height-10, 'PLAYER 1: '+ player1.health),
+        text2: createHealthText(game.width*1/18, 15, 'PLAYER 2: '+ player2.health)
+    }
+
+    game.time.advancedTiming = true
+}
+
+function moveSpace(){
+    space.tilePosition.y += 0.5
 }
 
 function update() {
-	 space.tilePosition.y += 0.5
+
+    //mover cenario
+    moveSpace()
+    
+    //movimentacao horizontal dos players
+    moveLeftRight(player1)
+    moveLeftRight(player2)
+
+    //tela de health
+    updateHud()     
+
+    //controle de disparo dos players
+    fireBullets(player1)
+    fireBullets(player2)
+    
+    //colisao entre as bullets com os asteroides
+    game.physics.arcade.collide(player1.bullets.bullets, map, bulletInAsteroid)
+    game.physics.arcade.collide(player2.bullets.bullets, map, bulletInAsteroid)
+
+    //colisao entre as bullets com os players
+    game.physics.arcade.collide(player1, player2.bullets.bullets, bulletInPlayer)
+    game.physics.arcade.collide(player2, player1.bullets.bullets, bulletInPlayer)
+}
+
+//hit outro player
+function bulletInPlayer(player, bullet) {
+    if (player.alive) {
+        player.damage(config.DAMEGE)
+        bullet.kill()
+        //updateHud()
+    }
+}
+
+//hit asteroids
+function bulletInAsteroid(bullets, asteroid) {
+    bullets.kill()
+    asteroid.kill()
 }
 
 function render() {
+    //render bullets player01
+    /*player1.bullets.forEach(function(obj){
+		game.debug.body(obj)	
+    })*/
 
-}
+    //render bullets player02
+    /*player2.bullets.forEach(function(obj){
+		game.debug.body(obj)	
+    })*/
 
-
-function moveLeftRight(player) {
-
-
-
-    /*// define aceleracao pela rotacao (radianos) do sprite
-    if (player.cursors.up.isDown) {
-        game.physics.arcade.accelerationFromRotation(
-            player.rotation, 600, player.body.acceleration
-        )
-    } else {
-        // precisa anular campo "acceleration" caso nao pressione UP
-        player.body.acceleration.set(0)
-    }
-
-    // rotaciona
-    if (player.cursors.left.isDown) {
-        player.body.angularVelocity = -200
-    } else
-    if (player.cursors.right.isDown) {
-        player.body.angularVelocity = 200
-    } else {
-        player.body.angularVelocity = 0
-    }
-
-    // atravessa bordas da tela (usando phaser built-in)
-    game.world.wrap(player, 0, true)*/
-}
-
-
-function createPlayer(x, y, img, tint, sentido_nave, keys) {
-    var player = game.add.sprite(x, y, img)
-
-    player.SPEED_X = 300
-    player.SPEED_Y = 300
-    player.tint = tint
-    player.health = 30    
-    player.anchor.setTo(0.5, 0.5)
-    game.physics.arcade.enable(player)
-    player.body.drag.set(300)
-    player.body.maxVelocity.set(player.SPEED_X)
-
-    player.body.isCircle = true
-
-    player.cursors = {
-        left: game.input.keyboard.addKey(keys.left),
-        right: game.input.keyboard.addKey(keys.right),
-        up: game.input.keyboard.addKey(keys.up),
-        down: game.input.keyboard.addKey(keys.down),
-        fire: game.input.keyboard.addKey(keys.fire)        
-    }
-
-    //player.bullets = createBullets()
-    player.scale.x = config.SCALE
-    player.scale.y = config.SCALE
-
-
-    if(sentido_nave == 'bottom'){
-		player.angle = 180
-	    player.x = game.width/2
-	    player.y = game.height-40    	
-    }
-    return player
-}
-
-
-/**
- * Exemplo de jogo com miscelanea de elementos:
- * - control de personagem por rotacionar e mover usando arcade physics
- * - dois players PVP
- * - pool e tiros
- * - colisao de tiros e players
- * - taxa de tiros e variancia de angulo
- * - HUD simples
- * - mapa em TXT
- 
-
-const config = {}
-config.RES_X = 1280 // resolucao HD
-config.RES_Y = 720
-
-config.PLAYER_ACCELERATION  = 600
-config.PLAYER_TURN_VELOCITY = 350
-config.PLAYER_MAX_VELOCITY  = 300
-config.PLAYER_HEALTH        = 30
-config.PLAYER_DRAG          = 300
-
-config.BULLET_FIRE_RATE     = 20
-config.BULLET_ANGLE_ERROR   = 0.1
-config.BULLET_LIFE_SPAN     = 750
-config.BULLET_VELOCITY      = 500
-
-var sky
-var fog
-var player1
-var player2
-var hud
-var map
-var obstacles
-
-var game = new Phaser.Game(config.RES_X, config.RES_Y, Phaser.CANVAS, 
-    'game-container',
-    {   
-        preload: preload,
-        create: create,
-        update: update,
-        render: render
-    })
-
-function preload() {
-    game.load.image('sky', 'assets/sky.png')
-    game.load.image('plane1', 'assets/airplane1.png')
-    game.load.image('shot', 'assets/shot.png')
-    game.load.image('wall', 'assets/wall.png')
-    game.load.image('fog', 'assets/fog.png')
-    game.load.text('map1', 'assets/map1.txt')  // arquivo txt do mapa
-    game.load.image('saw','assets/saw.png')
-
-}
-
-function createBullets() {
-    var bullets = game.add.group()
-    bullets.enableBody = true
-    bullets.physicsBodyType = Phaser.Physics.ARCADE
-    bullets.createMultiple(10, 'shot')
-    bullets.setAll('anchor.x', 0.5)
-    bullets.setAll('anchor.y', 0.5)
-    return bullets
-}
-
-function create() {
-    game.physics.startSystem(Phaser.Physics.ARCADE)
-
-    var skyWidth = game.cache.getImage('sky').width
-    var skyHeight = game.cache.getImage('sky').height
-    sky = game.add.tileSprite(
-        0, 0, skyWidth, skyHeight, 'sky')
-    sky.scale.x = game.width/sky.width
-    sky.scale.y = game.height/sky.height
-
-    fog = game.add.tileSprite(
-        0, 0, game.width, game.height, 'fog')
-    fog.tileScale.setTo(7,7)
-    fog.alpha = 0.4
+    //render asteroides
+    /*map.forEach(function(obj){
+		game.debug.body(obj)	
+    })*/
     
-    obstacles = game.add.group()
-    createMap()
-
-    player1 = new Player(game, game.width*2/9, game.height/2, 
-                        'plane1', 0xff0000, createBullets(), {   
-            left: Phaser.Keyboard.LEFT,
-            right: Phaser.Keyboard.RIGHT,
-            up: Phaser.Keyboard.UP,
-            down: Phaser.Keyboard.DOWN,
-            fire: Phaser.Keyboard.L
-        })
-    player2 = new Player(game, game.width*7/9, game.height/2, 
-                        'plane1', 0x00ff00, createBullets(), {   
-            left: Phaser.Keyboard.A,
-            right: Phaser.Keyboard.D,
-            up: Phaser.Keyboard.W,
-            down: Phaser.Keyboard.S,
-            fire: Phaser.Keyboard.G
-        })
-    game.add.existing(player1)
-    game.add.existing(player2)
-    player2.angle = 180
-
-    hud = {
-        text1: createHealthText(game.width*1/9, 50, 'PLAYER 1: 20'),
-        text2: createHealthText(game.width*8/9, 50, 'PLAYER 2: 20')
-    }
-    updateHud()
-
-    var fps = new FramesPerSecond(game, game.width/2, 50)
-    game.add.existing(fps)
-
-    var fullScreenButton = game.input.keyboard.addKey(Phaser.Keyboard.ONE)
-    fullScreenButton.onDown.add(toggleFullScreen)
+    //render players
+    /*game.debug.body(player1)
+    game.debug.body(player2)*/
 }
 
 function loadFile() {
-    var text = game.cache.getText('map1');
+    var text = game.cache.getText('map');
     return text.split('\n');
 }
 
@@ -269,92 +185,151 @@ function createMap() {
 
 
             if (tipo == 'X') {
-                var wall = map.create(col*32, row*32, 'wall')
-                wall.scale.setTo(0.5, 0.5)
-                game.physics.arcade.enable(wall)
-                wall.body.immovable = true
-                wall.tag = 'wall'
-            }else{
+                var asteroid = map.create(col*32, row*31.5, 'Asteroid01')
+                game.physics.arcade.enable(asteroid)
+
+                asteroid.scale.setTo(0.15, 0.15)
+                asteroid.body.setSize(180,120,45,55)
+                asteroid.body.isCircle = true
+                asteroid.body.immovable = true
+                asteroid.tag = 'asteroid'
+            }
+            /*else{
             	if(tipo == "S"){
-            		var saw = new Saw(game, col*32,row*32,'saw',param)
+            		//var saw = new Saw(game, col*32,row*32,'saw',param)
             		obstacles.add(saw)
             		//game.add.existing(saw)
             	}
-            }
+            }*/
         }
     }
 }
 
-function toggleFullScreen() {
-    game.scale.fullScreenScaleMode = Phaser.ScaleManager.SHOW_ALL
-    if (game.scale.isFullScreen) {
-        game.scale.stopFullScreen()
-    } else {
-        game.scale.startFullScreen(false)
+function moveLeftRight(player) {
+    player.body.velocity.setTo(0, 0)
+    
+    if (player.cursors.left.isDown) {
+        player.body.velocity.x = - player.SPEED_X
+    } 
+    else
+    if (player.cursors.right.isDown) {
+        player.body.velocity.x =  player.SPEED_X
     }
+
+    /*if (player.cursors.up.isDown) {
+         player.body.velocity.y = -player.SPEED_Y
+    }*/ 
+    // else
+    // if (player.cursors.down.isDown) {
+    //     player.body.velocity.y =  player.SPEED_Y
+    // }
+    // // rotaciona sprite para a direcao do vetor
+    // player.angle = player.body.angle * 180/Math.PI
+
+    // limita velocidade maxima (nas diagonais)
+    // if (player.body.velocity.getMagnitude() > player.SPEED_X) {
+    //     player.body.velocity.setMagnitude(player.SPEED_X)
+    // }
+
+    NoScreenWrap(player)
+
+}
+
+//funcao para limites da tela
+function NoScreenWrap(player) {
+
+    if (player.x < 0) {
+        player.x = config.LIMIT_X_LEFT
+    }
+    if (player.x > game.width) {
+        player.x = config.LIMIT_X_RIGHT
+    }
+
+    /*if (player.y < 0) {
+        player.y = 0
+    } else
+    if (player.y > game.height) {
+        player.y = game.height
+    }*/   
+}
+
+//funcao para criar os players
+function createPlayer(x, y, img, tint, sentido_nave, keys) {
+    var player = game.add.sprite(x, y, img)
+
+    //configuracao do player
+    player.SPEED_X = config.SPEED_X
+    player.SPEED_Y = config.SPEED_Y
+    player.tint = tint
+    player.health = config.HEALTH  
+    player.anchor.setTo(0.5, 0.5)
+    game.physics.arcade.enable(player)
+    player.body.drag.set(300)
+    player.body.maxVelocity.set(player.SPEED_X)
+    player.body.isCircle = true
+    player.body.immovable = true
+
+    //configuracao das acoes
+    player.cursors = {
+        left: game.input.keyboard.addKey(keys.left),
+        right: game.input.keyboard.addKey(keys.right),
+        //up: game.input.keyboard.addKey(keys.up),
+        //down: game.input.keyboard.addKey(keys.down),
+        fire: game.input.keyboard.addKey(keys.fire)        
+    }
+
+    //configuracao das bullets
+    player.bullets = game.add.weapon(config.MAX_BULLETS, 'Shot01')
+    player.bullets.enableBody = true;
+    player.bullets.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS
+    player.bullets.bulletSpeed = config.VELOCITY_BULLETS
+    player.bullets.fireRate = config.FIRE_RATE;
+    player.bullets.bulletAngleVariance = config.ANGLE_VARIANCE;
+    player.bullets.bulletLifespan = config.LIFE_BULLETS;
+    player.bullets.trackSprite(player, 0, 0, true)
+
+    //posicao do player01
+    if(sentido_nave == 'bottom'){
+        player.scale.x = config.SCALE
+        player.scale.y = config.SCALE
+        player.fireButton = game.input.keyboard.addKey(Phaser.KeyCode.L);
+		player.angle = -90
+	    player.x = game.width/2
+	    player.y = game.height-35    	
+    }
+
+    //posicao do player02
+    if(sentido_nave == 'top'){
+        player.scale.x = config.SCALE + 0.07
+        player.scale.y = config.SCALE + 0.07
+        player.fireButton = game.input.keyboard.addKey(Phaser.KeyCode.L);
+        player.angle = 90
+	    player.x = game.width/2
+	    player.y = 40    
+    }
+    return player
+}
+
+function updateHud() {
+    hud.text1.text = 'PLAYER 1: ' + player1.health
+    hud.text2.text = 'PLAYER 2: ' + player2.health
 }
 
 function createHealthText(x, y, text) {
-    var style = {font: 'bold 16px Arial', fill: 'white'}
+    var style = {font: 'bold 12px Arial', fill: 'cyan'}
     var text = game.add.text(x, y, text, style)
     text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2)
     text.anchor.setTo(0.5, 0.5)
     return text
 }
 
-function updateBullets(bullets) {
-    bullets.forEach(function(bullet) {
-        game.world.wrap(bullet, 0, true)
-    })
+function fireBullets (player){
+    if (player.alive){
+        if (player.bullets.alive)
+            return
+
+        if (player.cursors.fire.isDown){
+            player.bullets.fire();
+        }
+    }   
 }
-
-function update() {
-    sky.tilePosition.x += 0.5
-    fog.tilePosition.x += 0.3
-
- 
-    //moveAndStop(player1)
-    updateBullets(player1.bullets)
-    updateBullets(player2.bullets)
-
-    game.physics.arcade.collide(player1, player2)
-    game.physics.arcade.collide(
-        player1, player2.bullets, hitPlayer)
-    game.physics.arcade.collide(
-        player2, player1.bullets, hitPlayer)
-
-    game.physics.arcade.collide(player1, map)
-    game.physics.arcade.collide(player2, map)
-    game.physics.arcade.collide(
-        player1.bullets, map, killBullet)
-    game.physics.arcade.collide(
-        player2.bullets, map, killBullet)
-}
-
-function killBullet(bullet, wall) {
-    //wall.kill()
-    bullet.kill()
-}
-
-function hitPlayer(player, bullet) {
-    if (player.alive) {
-        player.damage(1)
-        bullet.kill()
-        updateHud()
-    }
-}
-
-function updateHud() {
-    hud.text1.text = `PLAYER 1: ${player1.health}`
-    hud.text2.text = 'PLAYER 2: ' + player2.health
-}
-
-function render() {
-	obstacles.forEach(function(obj){
-		game.debug.body(obj)	
-	})
-    
-    //game.debug.body(player1)
-    //game.debug.body(player2)
-}
-*/
