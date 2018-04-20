@@ -20,17 +20,20 @@ var player2
 var obstacles
 var adress_map = 'assets/Map01.txt'
 var map
+var itens_Weapon
+var itens_Life
+var itens_UpSpeedy
 var hud
 
 config.RES_X = 800 
 config.RES_Y = 595
 config.SCALE = 0.12
-config.SPEED_X = 300
-config.SPEED_Y = 300
+config.SPEED_X = 250
 config.LIMIT_X_LEFT = 25
 config.LIMIT_X_RIGHT = config.RES_X - 25 
 config.HEALTH = 5
 config.DAMEGE = 1
+config.ADDLIFE = 1
 
 config.MAX_BULLETS = 2
 config.VELOCITY_BULLETS = 800
@@ -54,9 +57,67 @@ function preload() {
     game.load.image('Plane01', 'assets/Plane01.png')
     game.load.image('Plane02', 'assets/Plane02.png')
     game.load.image('Shot01', 'assets/Shot01.png')
-    game.load.image('Asteroid01','assets/Asteroid01.png')
+    game.load.image('Shot02', 'assets/Shot02.png')
+    game.load.image('Asteroid01', 'assets/Asteroid01.png')
+    game.load.image('Weapon', 'assets/Weapon.png')
+    game.load.image('Life', 'assets/Life.png')
+    game.load.image('UpSpeedy', 'assets/UpSpeedy.png')
     game.load.text('map',adress_map)
 }   
+
+function createItens() {
+    var aux_itensWeapon = game.add.group()
+
+    aux_itensWeapon.enableBody = true
+    aux_itensWeapon.physicsBodyType = Phaser.Physics.ARCADE
+    aux_itensWeapon.createMultiple(10, 'Weapon')
+    aux_itensWeapon.setAll('anchor.x', 0.5)
+    aux_itensWeapon.setAll('anchor.y', 0.5)
+    itens_Weapon = aux_itensWeapon
+
+
+    var aux_itensLife = game.add.group()
+
+    aux_itensLife.enableBody = true
+    aux_itensLife.physicsBodyType = Phaser.Physics.ARCADE
+    aux_itensLife.createMultiple(10, 'Life')
+    aux_itensLife.setAll('anchor.x', 0.5)
+    aux_itensLife.setAll('anchor.y', 0.5)
+    itens_Life = aux_itensLife
+
+
+    var aux_itensUpSpeedy = game.add.group()
+
+    aux_itensUpSpeedy.enableBody = true
+    aux_itensUpSpeedy.physicsBodyType = Phaser.Physics.ARCADE
+    aux_itensUpSpeedy.createMultiple(10, 'UpSpeedy')
+    aux_itensUpSpeedy.setAll('anchor.x', 0.5)
+    aux_itensUpSpeedy.setAll('anchor.y', 0.5)
+    itens_UpSpeedy = aux_itensUpSpeedy
+
+}
+
+function createWeapons(player){
+    player.weapon01 =  game.add.weapon(config.MAX_BULLETS, 'Shot01')
+    player.weapon01.enableBody = true;
+    player.weapon01.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS
+    player.weapon01.bulletSpeed = config.VELOCITY_BULLETS
+    player.weapon01.fireRate = config.FIRE_RATE;
+    player.weapon01.bulletAngleVariance = config.ANGLE_VARIANCE;
+    player.weapon01.bulletLifespan = config.LIFE_BULLETS;
+    player.weapon01.trackSprite(player, 0, 0, true)
+
+    player.weapon02 =  game.add.weapon(config.MAX_BULLETS+1, 'Shot02')
+    player.weapon02.enableBody = true;
+    player.weapon02.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS
+    player.weapon02.bulletSpeed = config.VELOCITY_BULLETS
+    player.weapon02.fireRate = config.FIRE_RATE;
+    player.weapon02.bulletAngleVariance = config.ANGLE_VARIANCE;
+    player.weapon02.bulletLifespan = config.LIFE_BULLETS;
+    player.weapon02.trackSprite(player, 0, 0, true)
+
+    player.currentWeapon = player.weapon01
+}
 
 function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE)
@@ -69,13 +130,12 @@ function create() {
     space.scale.y = game.height/space.height
 
     createMap()
+    createItens()
 
     player1 = createPlayer(game.width/2, game.height/2, 'Plane01', 0x20ff50, 'bottom', 
         {   
             left: Phaser.Keyboard.LEFT,
             right: Phaser.Keyboard.RIGHT,
-            //up: Phaser.Keyboard.UP,
-            //down: Phaser.Keyboard.DOWN,
             fire: Phaser.Keyboard.L
         })
 
@@ -83,8 +143,6 @@ function create() {
         {   
             left: Phaser.Keyboard.A,
             right: Phaser.Keyboard.S,
-            //up: Phaser.Keyboard.UP,
-            //down: Phaser.Keyboard.DOWN,
             fire: Phaser.Keyboard.F
     })
 
@@ -120,27 +178,130 @@ function update() {
     fireBullets(player2)
     
     //colisao entre as bullets com os asteroides
-    game.physics.arcade.collide(player1.bullets.bullets, map, bulletInAsteroid)
-    game.physics.arcade.collide(player2.bullets.bullets, map, bulletInAsteroid)
+    game.physics.arcade.collide(player1.weapon01.bullets, map, bulletInAsteroid1)
+    game.physics.arcade.collide(player2.weapon01.bullets, map, bulletInAsteroid2)
+    game.physics.arcade.collide(player1.weapon02.bullets, map, bulletInAsteroid1)
+    game.physics.arcade.collide(player2.weapon02.bullets, map, bulletInAsteroid2)
 
     //colisao entre as bullets com os players
-    game.physics.arcade.collide(player1, player2.bullets.bullets, bulletInPlayer)
-    game.physics.arcade.collide(player2, player1.bullets.bullets, bulletInPlayer)
+    game.physics.arcade.collide(player1, player2.weapon01.bullets, bulletInPlayer)
+    game.physics.arcade.collide(player2, player1.weapon01.bullets, bulletInPlayer)
+    game.physics.arcade.collide(player1, player2.weapon02.bullets, bulletInPlayer)
+    game.physics.arcade.collide(player2, player1.weapon02.bullets, bulletInPlayer)
+
+    //colisao dos players com os itens vida
+    game.physics.arcade.collide(player1, itens_Life, playerInLife)
+    game.physics.arcade.collide(player2, itens_Life, playerInLife)
+
+    //colisao das player com os itens de arma
+    game.physics.arcade.collide(player1, itens_Weapon, playerInWeapon)
+    game.physics.arcade.collide(player2, itens_Weapon, playerInWeapon)
+
+    //colisao dos player com os itens de upspeedy
+    game.physics.arcade.collide(player1, itens_UpSpeedy, playerInUpSpeedy)
+    game.physics.arcade.collide(player2, itens_UpSpeedy, playerInUpSpeedy)
 }
 
-//hit outro player
+function playerInUpSpeedy(player,upSpeedy){
+    upSpeedy.kill()
+    player.SPEED_X += 300
+}
+
+function playerInWeapon(player,weapon){
+    weapon.kill()
+    
+    if (weapon.type == "weapon02"){
+        player.currentWeapon = player.weapon02
+    }
+}
+
+function playerInLife(player,life){
+    life.kill()
+    if (player.health < config.HEALTH){
+        player.health += config.ADDLIFE
+    }
+}
+
+//hit player
 function bulletInPlayer(player, bullet) {
     if (player.alive) {
         player.damage(config.DAMEGE)
         bullet.kill()
-        //updateHud()
     }
 }
 
-//hit asteroids
-function bulletInAsteroid(bullets, asteroid) {
+//player1 hit asteroids
+function bulletInAsteroid1(bullets, asteroid) {
     bullets.kill()
     asteroid.kill()
+
+    //criar grupo weapon2
+    if(asteroid.drop == "Item_Weapon"){
+        var item = itens_Weapon.getFirstExists(false)
+        if (item) {
+            item.scale.setTo(0.2,0.2)
+            item.reset(asteroid.x, asteroid.y)
+            item.body.velocity.y =  75
+            item.type = "weapon02"
+        }
+    }
+
+    //criar grupo life 
+    if(asteroid.drop == "Item_Life"){
+        var item = itens_Life.getFirstExists(false)
+        if (item) {
+            item.scale.setTo(0.1,0.1)
+            item.reset(asteroid.x, asteroid.y)
+            item.body.velocity.y =  75
+        }
+    }
+
+    //criar grupo upspeedy
+    if(asteroid.drop == "Item_UpSpeedy"){
+        var item = itens_UpSpeedy.getFirstExists(false)
+        if (item) {
+            item.scale.setTo(0.05,0.05)
+            item.reset(asteroid.x, asteroid.y)
+            item.body.velocity.y =  75
+        }
+    }
+}
+
+//player2 hit asteroids
+function bulletInAsteroid2(bullets, asteroid) {
+    bullets.kill()
+    asteroid.kill()
+    
+    //criar grupo weapon2
+    if(asteroid.drop == "Item_Weapon"){
+        var item = itens_Weapon.getFirstExists(false)
+        if (item) {
+            item.scale.setTo(0.2,0.2)
+            item.reset(asteroid.x, asteroid.y)
+            item.body.velocity.y =  -75
+            item.type = "weapon02"
+        }
+    }
+
+    //criar grupo life 
+    if(asteroid.drop == "Item_Life"){
+        var item = itens_Life.getFirstExists(false)
+        if (item) {
+            item.scale.setTo(0.1,0.1)
+            item.reset(asteroid.x, asteroid.y)
+            item.body.velocity.y =  -75
+        }
+    }
+
+    //criar grupo upspeedy
+    if(asteroid.drop == "Item_UpSpeedy"){
+        var item = itens_UpSpeedy.getFirstExists(false)
+        if (item) {
+            item.scale.setTo(0.05,0.05)
+            item.reset(asteroid.x, asteroid.y)
+            item.body.velocity.y =  -75
+        }
+    }
 }
 
 function render() {
@@ -183,8 +344,7 @@ function createMap() {
             	param = mapData[row][col+1]
             }
 
-
-            if (tipo == 'X') {
+            if (tipo != ' ') {
                 var asteroid = map.create(col*32, row*31.5, 'Asteroid01')
                 game.physics.arcade.enable(asteroid)
 
@@ -193,14 +353,19 @@ function createMap() {
                 asteroid.body.isCircle = true
                 asteroid.body.immovable = true
                 asteroid.tag = 'asteroid'
+
+                if(tipo == 'W'){
+                    asteroid.drop = "Item_Weapon"
+                }
+
+                if(tipo == 'L'){
+                    asteroid.drop = "Item_Life"
+                }
+
+                if(tipo == 'S'){
+                    asteroid.drop = "Item_UpSpeedy"
+                }
             }
-            /*else{
-            	if(tipo == "S"){
-            		//var saw = new Saw(game, col*32,row*32,'saw',param)
-            		obstacles.add(saw)
-            		//game.add.existing(saw)
-            	}
-            }*/
         }
     }
 }
@@ -214,25 +379,9 @@ function moveLeftRight(player) {
     else
     if (player.cursors.right.isDown) {
         player.body.velocity.x =  player.SPEED_X
-    }
-
-    /*if (player.cursors.up.isDown) {
-         player.body.velocity.y = -player.SPEED_Y
-    }*/ 
-    // else
-    // if (player.cursors.down.isDown) {
-    //     player.body.velocity.y =  player.SPEED_Y
-    // }
-    // // rotaciona sprite para a direcao do vetor
-    // player.angle = player.body.angle * 180/Math.PI
-
-    // limita velocidade maxima (nas diagonais)
-    // if (player.body.velocity.getMagnitude() > player.SPEED_X) {
-    //     player.body.velocity.setMagnitude(player.SPEED_X)
-    // }
+    } 
 
     NoScreenWrap(player)
-
 }
 
 //funcao para limites da tela
@@ -244,13 +393,6 @@ function NoScreenWrap(player) {
     if (player.x > game.width) {
         player.x = config.LIMIT_X_RIGHT
     }
-
-    /*if (player.y < 0) {
-        player.y = 0
-    } else
-    if (player.y > game.height) {
-        player.y = game.height
-    }*/   
 }
 
 //funcao para criar os players
@@ -259,13 +401,11 @@ function createPlayer(x, y, img, tint, sentido_nave, keys) {
 
     //configuracao do player
     player.SPEED_X = config.SPEED_X
-    player.SPEED_Y = config.SPEED_Y
     player.tint = tint
     player.health = config.HEALTH  
     player.anchor.setTo(0.5, 0.5)
     game.physics.arcade.enable(player)
     player.body.drag.set(300)
-    player.body.maxVelocity.set(player.SPEED_X)
     player.body.isCircle = true
     player.body.immovable = true
 
@@ -273,20 +413,12 @@ function createPlayer(x, y, img, tint, sentido_nave, keys) {
     player.cursors = {
         left: game.input.keyboard.addKey(keys.left),
         right: game.input.keyboard.addKey(keys.right),
-        //up: game.input.keyboard.addKey(keys.up),
-        //down: game.input.keyboard.addKey(keys.down),
         fire: game.input.keyboard.addKey(keys.fire)        
     }
 
-    //configuracao das bullets
-    player.bullets = game.add.weapon(config.MAX_BULLETS, 'Shot01')
-    player.bullets.enableBody = true;
-    player.bullets.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS
-    player.bullets.bulletSpeed = config.VELOCITY_BULLETS
-    player.bullets.fireRate = config.FIRE_RATE;
-    player.bullets.bulletAngleVariance = config.ANGLE_VARIANCE;
-    player.bullets.bulletLifespan = config.LIFE_BULLETS;
-    player.bullets.trackSprite(player, 0, 0, true)
+    //criacao das bullets
+    createWeapons(player)
+
 
     //posicao do player01
     if(sentido_nave == 'bottom'){
@@ -325,11 +457,11 @@ function createHealthText(x, y, text) {
 
 function fireBullets (player){
     if (player.alive){
-        if (player.bullets.alive)
-            return
+        //if (player.currentWeapon.alive)
+         //   return
 
         if (player.cursors.fire.isDown){
-            player.bullets.fire();
+            player.currentWeapon.fire();
         }
     }   
 }

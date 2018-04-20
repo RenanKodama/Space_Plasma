@@ -77,7 +77,7 @@ Descrição:
     
 
     Colecionaveis:
-        UpSpeed = Aumenta a velocidade dos tiros por tempo limitado
+        UpSpeed = Aumenta a velocidade do personagem
         Weapon02 = Aumento do numero de tiros 
         Cash = Aumenta score do Player
         Life = Aumenta a Vida do Player
@@ -91,4 +91,4 @@ Descrição:
     Duração do Jogo: Finito
 
     Numero de Mapas: 3 (Diferenciando a posição e quantidades de blocos de cada mapa)
-
+    
