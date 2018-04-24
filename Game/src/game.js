@@ -18,7 +18,7 @@ var space
 var player1
 var player2
 var obstacles
-var adress_map = 'assets/Map01.txt'
+var adress_map = 'assets/Map02.txt'
 var map
 var itens_Weapon
 var itens_Life
