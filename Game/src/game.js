@@ -206,7 +206,7 @@ function create() {
         text1: createHealthText(game.width*8/8.5, game.height-10, 'PLAYER 1: '+ player1.health,'bold 12px Arial','cyan'),
         score1: createHealthText(game.width*1/20, game.height-10,'SCORE: ' + player1.score,'bold 12px Arial','cyan'),
         text2: createHealthText(game.width*1/18, 15, 'PLAYER 2: '+ player2.health,'bold 12px Arial','cyan'),
-        score2: createHealthText(game.width*8/8.4, 15, 'SCORE: '+ player2.score,'bold 12px Arial','cyan')
+        score2: createHealthText(game.width*8/8.7, 15, 'SCORE: '+ player2.score,'bold 12px Arial','cyan')
     }
 
     game.time.advancedTiming = true
@@ -393,14 +393,15 @@ function bulletInAsteroid1(bullets, asteroid) {
 function bulletInAsteroid2(bullets, asteroid) {
     bullets.kill()
     asteroid.kill()
-    
+
     player2.score += config.SCORE_ASTEROID
 
     //criar grupo weapon2
     if(asteroid.drop == "Item_Weapon"){
         var item = itens_Weapon.getFirstExists(false)
         if (item) {
-            // item.scale.setTo(0.2,0.2)
+            item.scale.setTo(0.2,0.2)
+            item.body.setSize(100,100,45,55)
             item.reset(asteroid.x, asteroid.y)
             item.body.velocity.y =  -75
             item.type = "weapon02"
@@ -411,7 +412,7 @@ function bulletInAsteroid2(bullets, asteroid) {
     if(asteroid.drop == "Item_Life"){
         var item = itens_Life.getFirstExists(false)
         if (item) {
-            // item.scale.setTo(0.1,0.1)
+            item.scale.setTo(0.1,0.1)
             item.reset(asteroid.x, asteroid.y)
             item.body.velocity.y =  -75
         }
@@ -421,7 +422,7 @@ function bulletInAsteroid2(bullets, asteroid) {
     if(asteroid.drop == "Item_UpSpeedy"){
         var item = itens_UpSpeedy.getFirstExists(false)
         if (item) {
-            // item.scale.setTo(0.05,0.05)
+            item.scale.setTo(0.05,0.05)
             item.reset(asteroid.x, asteroid.y)
             item.body.velocity.y =  -75
         }
