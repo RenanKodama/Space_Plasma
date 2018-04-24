@@ -24,23 +24,42 @@ var itens_Weapon
 var itens_Life
 var itens_UpSpeedy
 var hud
+var game_over
 
+
+
+config.MIN = -300
+config.MAX = 300
 config.RES_X = 800 
 config.RES_Y = 595
 config.SCALE = 0.12
 config.SPEED_X = 250
 config.LIMIT_X_LEFT = 25
 config.LIMIT_X_RIGHT = config.RES_X - 25 
-config.HEALTH = 5
-config.DAMEGE = 1
+config.HEALTH = 8
 config.ADDLIFE = 1
+config.MAX_TIME_UPSPEEDY = 4
+
+config.VELOCITY_OBSTACLES = 200
+config.TIME_OBSTACLES = 5
+config.HEALTH_OBSTACLES = 10
+config.DRAG_OBSTACLES = 10
+config.NUMBER_OBSTACLES = 20
+config.MASS_OBSTACLES = 25
+config.DAMAGE_OBSTACLES = 1
+
+config.SCORE_ASTEROID = 129
+config.SCORE_WEAPON = 152
+config.SCORE_LIFE = 189
+config.SCORE_UPSPEEDY = 138
+config.SCORE_OBSTACLES = 86
 
 config.MAX_BULLETS = 2
 config.VELOCITY_BULLETS = 800
 config.FIRE_RATE = 80
 config.ANGLE_VARIANCE = 3
 config.LIFE_BULLETS = 20
-
+config.DAMAGE_BULLET = 1
 
 
 var game = new Phaser.Game(config.RES_X, config.RES_Y, Phaser.CANVAS, 
@@ -62,6 +81,7 @@ function preload() {
     game.load.image('Weapon', 'assets/Weapon.png')
     game.load.image('Life', 'assets/Life.png')
     game.load.image('UpSpeedy', 'assets/UpSpeedy.png')
+    game.load.image('Saw','assets/Saw.png')
     game.load.text('map',adress_map)
 }   
 
@@ -95,6 +115,38 @@ function createItens() {
     aux_itensUpSpeedy.setAll('anchor.y', 0.5)
     itens_UpSpeedy = aux_itensUpSpeedy
 
+}
+
+function inicia_Obstacles (){
+    obstacles = game.add.group()
+    game.time.events.repeat(Phaser.Timer.SECOND * config.TIME_OBSTACLES, config.NUMBER_OBSTACLES, createObstacles, this);
+}
+
+function createObstacles (){
+
+    var aux_obstacles = game.add.sprite(game.world.randomX, 0, 'Saw')
+
+    game.physics.enable(aux_obstacles, Phaser.Physics.ARCADE)
+    aux_obstacles.enableBody = true
+    aux_obstacles.physicsBodyType = Phaser.Physics.ARCADE
+    aux_obstacles.body.velocity.setTo(Math.random()*(config.MAX - config.MIN) + config.MIN, Math.random()*(config.MAX - config.MIN) + config.MIN)
+    aux_obstacles.x = game.width/2
+    aux_obstacles.y = game.height/2
+    aux_obstacles.body.bounce.set(1);
+    aux_obstacles.body.collideWorldBounds = true
+    aux_obstacles.body.isCircle = true
+    aux_obstacles.health = config.HEALTH_OBSTACLES
+    aux_obstacles.body.drag.set(config.DRAG_OBSTACLES)
+    aux_obstacles.body.mass = config.MASS_OBSTACLES
+    aux_obstacles.anchor.setTo(0.5, 0.5)
+    aux_obstacles.tint = 0x6f5056
+    
+    game.add.tween(aux_obstacles)
+    .to( { angle: -359 }, 2000 )
+    .loop(-1)
+    .start()
+
+    obstacles.add(aux_obstacles)
 }
 
 function createWeapons(player){
@@ -131,6 +183,7 @@ function create() {
 
     createMap()
     createItens()
+    inicia_Obstacles()
 
     player1 = createPlayer(game.width/2, game.height/2, 'Plane01', 0x20ff50, 'bottom', 
         {   
@@ -150,8 +203,10 @@ function create() {
     game.add.existing(player2)
 
     hud = {
-        text1: createHealthText(game.width*8/8.5, game.height-10, 'PLAYER 1: '+ player1.health),
-        text2: createHealthText(game.width*1/18, 15, 'PLAYER 2: '+ player2.health)
+        text1: createHealthText(game.width*8/8.5, game.height-10, 'PLAYER 1: '+ player1.health,'bold 12px Arial','cyan'),
+        score1: createHealthText(game.width*1/20, game.height-10,'SCORE: ' + player1.score,'bold 12px Arial','cyan'),
+        text2: createHealthText(game.width*1/18, 15, 'PLAYER 2: '+ player2.health,'bold 12px Arial','cyan'),
+        score2: createHealthText(game.width*8/8.4, 15, 'SCORE: '+ player2.score,'bold 12px Arial','cyan')
     }
 
     game.time.advancedTiming = true
@@ -200,23 +255,87 @@ function update() {
     //colisao dos player com os itens de upspeedy
     game.physics.arcade.collide(player1, itens_UpSpeedy, playerInUpSpeedy)
     game.physics.arcade.collide(player2, itens_UpSpeedy, playerInUpSpeedy)
+
+    //colisao dos players com os obstaculos
+    game.physics.arcade.collide(player1, obstacles, playerInObstacles)
+    game.physics.arcade.collide(player2, obstacles, playerInObstacles)
+
+    //colisao dos tiros com os obstaculos
+    game.physics.arcade.collide(player1.weapon01.bullets, obstacles, bulletInObstacle)
+    game.physics.arcade.collide(player1.weapon02.bullets, obstacles, bulletInObstacle)
+    game.physics.arcade.collide(player2.weapon01.bullets, obstacles, bulletInObstacle)
+    game.physics.arcade.collide(player2.weapon02.bullets, obstacles, bulletInObstacle)
+
+    //colisao entre os obstaculos
+    game.physics.arcade.collide(obstacles, obstacles)
+
+    //verificar vida dos players
+    checkPlayers(player1,player2)
 }
 
+//dano das balas no obstaculo
+function bulletInObstacle(bullet, obstacle){
+    obstacle.damage(config.DAMAGE_BULLET)
+    bullet.kill()
+}
+
+//dano do obstaculo no player
+function playerInObstacles(player, obstacles){
+    player.damage(config.DAMAGE_OBSTACLES)
+}
+
+//mostra tela de game over
+function endGame(){
+    game.gamePaused()
+
+    game_over = {
+        text1: createHealthText(game.width/2, (game.height-100)/2, 'GAME OVER','bold 30px Arial','yellow'),
+        text2: createHealthText((game.width)/2, game.height/2, 'SCORES: ','bold 20px Arial','yellow'),
+        text3: createHealthText((game.width+80)/2, (game.height+100)/2, 
+                                                                        'PLAYER1 '+ player1.score +
+        
+                                                                        '\nPLAYER2 '+player2.score
+                                                                        
+                                                                        ,'bold 20px Arial','yellow')
+    }
+}
+
+//verifica a vida dos players
+function checkPlayers(player1,player2){
+    if(!player1.alive || !player2.alive){
+        endGame()
+    }
+}
+
+//resetar a velocidade do player
+function removeUpSpeedy(player){
+    player.SPEED_X = config.SPEED_X
+}
+
+//player colidiu com o upspeedy
 function playerInUpSpeedy(player,upSpeedy){
     upSpeedy.kill()
-    player.SPEED_X += 300
+    player.SPEED_X += 350
+    player.score += config.SCORE_UPSPEEDY
+
+    game.time.events.add(Phaser.Timer.SECOND * config.MAX_TIME_UPSPEEDY, removeUpSpeedy, this, player);
 }
 
+//player colidiu com a weapon02
 function playerInWeapon(player,weapon){
     weapon.kill()
+    player.score += config.SCORE_WEAPON
     
     if (weapon.type == "weapon02"){
         player.currentWeapon = player.weapon02
     }
 }
 
+//player colidiu com a vida
 function playerInLife(player,life){
     life.kill()
+    player.score += config.SCORE_LIFE
+
     if (player.health < config.HEALTH){
         player.health += config.ADDLIFE
     }
@@ -225,7 +344,7 @@ function playerInLife(player,life){
 //hit player
 function bulletInPlayer(player, bullet) {
     if (player.alive) {
-        player.damage(config.DAMEGE)
+        player.damage(config.DAMAGE_BULLET)
         bullet.kill()
     }
 }
@@ -235,11 +354,14 @@ function bulletInAsteroid1(bullets, asteroid) {
     bullets.kill()
     asteroid.kill()
 
+    player1.score += config.SCORE_ASTEROID
+
     //criar grupo weapon2
     if(asteroid.drop == "Item_Weapon"){
         var item = itens_Weapon.getFirstExists(false)
         if (item) {
             item.scale.setTo(0.2,0.2)
+            item.body.setSize(100,100,45,55)
             item.reset(asteroid.x, asteroid.y)
             item.body.velocity.y =  75
             item.type = "weapon02"
@@ -272,11 +394,13 @@ function bulletInAsteroid2(bullets, asteroid) {
     bullets.kill()
     asteroid.kill()
     
+    player2.score += config.SCORE_ASTEROID
+
     //criar grupo weapon2
     if(asteroid.drop == "Item_Weapon"){
         var item = itens_Weapon.getFirstExists(false)
         if (item) {
-            item.scale.setTo(0.2,0.2)
+            // item.scale.setTo(0.2,0.2)
             item.reset(asteroid.x, asteroid.y)
             item.body.velocity.y =  -75
             item.type = "weapon02"
@@ -287,7 +411,7 @@ function bulletInAsteroid2(bullets, asteroid) {
     if(asteroid.drop == "Item_Life"){
         var item = itens_Life.getFirstExists(false)
         if (item) {
-            item.scale.setTo(0.1,0.1)
+            // item.scale.setTo(0.1,0.1)
             item.reset(asteroid.x, asteroid.y)
             item.body.velocity.y =  -75
         }
@@ -297,7 +421,7 @@ function bulletInAsteroid2(bullets, asteroid) {
     if(asteroid.drop == "Item_UpSpeedy"){
         var item = itens_UpSpeedy.getFirstExists(false)
         if (item) {
-            item.scale.setTo(0.05,0.05)
+            // item.scale.setTo(0.05,0.05)
             item.reset(asteroid.x, asteroid.y)
             item.body.velocity.y =  -75
         }
@@ -305,24 +429,46 @@ function bulletInAsteroid2(bullets, asteroid) {
 }
 
 function render() {
+    /*
     //render bullets player01
-    /*player1.bullets.forEach(function(obj){
+    player1.currentWeapon.forEach(function(obj){
 		game.debug.body(obj)	
-    })*/
+    })
 
     //render bullets player02
-    /*player2.bullets.forEach(function(obj){
+    player2.currentWeapon.forEach(function(obj){
 		game.debug.body(obj)	
-    })*/
+    })
 
     //render asteroides
-    /*map.forEach(function(obj){
+    map.forEach(function(obj){
 		game.debug.body(obj)	
-    })*/
+    })
     
+    //render obstacles
+    obstacles.forEach(function(obj){
+        game.debug.body(obj)
+    })
+    
+    // render itens weapons
+    itens_Weapon.forEach(function(obj){
+        game.debug.body(obj)
+    })
+
+    //render itens upspeedy
+    itens_UpSpeedy.forEach(function(obj){
+        game.debug.body(obj)
+    })
+
+    //render itens health
+    itens_Life.forEach(function(obj){
+        game.debug.body(obj)
+    })
+
     //render players
-    /*game.debug.body(player1)
-    game.debug.body(player2)*/
+    game.debug.body(player1)
+    game.debug.body(player2)
+    */
 }
 
 function loadFile() {
@@ -351,6 +497,7 @@ function createMap() {
                 asteroid.scale.setTo(0.15, 0.15)
                 asteroid.body.setSize(180,120,45,55)
                 asteroid.body.isCircle = true
+                asteroid.tint = 0xff0000
                 asteroid.body.immovable = true
                 asteroid.tag = 'asteroid'
 
@@ -405,9 +552,9 @@ function createPlayer(x, y, img, tint, sentido_nave, keys) {
     player.health = config.HEALTH  
     player.anchor.setTo(0.5, 0.5)
     game.physics.arcade.enable(player)
-    player.body.drag.set(300)
     player.body.isCircle = true
     player.body.immovable = true
+    player.score = 0
 
     //configuracao das acoes
     player.cursors = {
@@ -444,11 +591,13 @@ function createPlayer(x, y, img, tint, sentido_nave, keys) {
 
 function updateHud() {
     hud.text1.text = 'PLAYER 1: ' + player1.health
+    hud.score1.text = 'SCORE: ' + player1.score
     hud.text2.text = 'PLAYER 2: ' + player2.health
+    hud.score2.text = 'SCORE: ' + player2.score
 }
 
-function createHealthText(x, y, text) {
-    var style = {font: 'bold 12px Arial', fill: 'cyan'}
+function createHealthText(x, y, text, tipo, cor) {
+    var style = {font: tipo, fill: cor}
     var text = game.add.text(x, y, text, style)
     text.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2)
     text.anchor.setTo(0.5, 0.5)
@@ -457,9 +606,6 @@ function createHealthText(x, y, text) {
 
 function fireBullets (player){
     if (player.alive){
-        //if (player.currentWeapon.alive)
-         //   return
-
         if (player.cursors.fire.isDown){
             player.currentWeapon.fire();
         }
