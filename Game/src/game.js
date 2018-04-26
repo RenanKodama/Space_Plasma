@@ -18,7 +18,7 @@ var space
 var player1
 var player2
 var obstacles
-var adress_map = 'assets/Map02.txt'
+var adress_map = 'assets/Map01.txt'
 var map
 var itens_Weapon
 var itens_Life
@@ -27,6 +27,7 @@ var itens_Coin
 var hud
 var game_over
 var level
+var explosion_Sheet
 
 var som_ambiente
 var som_explosion
@@ -57,12 +58,12 @@ config.NUMBER_ITENS = 30
 
 config.VELOCITY_OBSTACLES = 200
 config.TIME_OBSTACLES = 5
-config.TIME_REVIVE_ASTEROIDS = 2.5
+config.TIME_REVIVE_ASTEROIDS = 1.5
 config.HEALTH_OBSTACLES = 10
 config.DRAG_OBSTACLES = 10
 config.NUMBER_OBSTACLES = 50
 config.MASS_OBSTACLES = 20
-config.DAMAGE_OBSTACLES = 0                     //##################################################################################
+config.DAMAGE_OBSTACLES = 1                   
 config.HEALTH_OBSTACLES = 1
 
 config.SCORE_ASTEROID = 129
@@ -102,6 +103,7 @@ function preload() {
     game.load.image('Saw','assets/Saw.png')
     game.load.image('Coin','assets/Coin.png')
     game.load.text('map',adress_map)
+    game.load.spritesheet('Explosion_Sheet', 'assets/Explosion.png', 56, 56)
     game.load.audio('Song_Ambiente','assets/audio/Musica_Fundo.ogg')
     game.load.audio('Song_Explosion','assets/audio/Musica_Explosion.ogg')
     game.load.audio('Song_Coin','assets/audio/Som_Coin.ogg')
@@ -337,6 +339,26 @@ function create_Sons (){
     iniciar_SomFundo()
 }
 
+//funcao para criar as explosoes
+function create_Explosion(){
+    explosion_Sheet = game.add.group()    
+    explosion_Sheet.createMultiple(30, 'Explosion_Sheet')
+    explosion_Sheet.forEach(function(exp) {
+        var anim = exp.animations.add('full', null , 60, false) 
+        exp.scale.setTo(0.5, 0.5)
+        //exp.anchor.setTo(0.03, 0.03)   
+        anim.onComplete.add( () => exp.kill() )    
+    })  
+}
+
+//funcao para mostrar as explosoes
+function inicia_Explosion(obj,scale){
+    var exp = explosion_Sheet.getFirstExists(false)
+    exp.reset(obj.x, obj.y)
+    exp.scale.setTo(scale,scale)
+    exp.animations.play('full') 
+}
+
 //inicia som de fundo
 function iniciar_SomFundo(){
     som_ambiente.loopFull(0.6)
@@ -368,6 +390,7 @@ function create() {
     createMap()
     create_Sons()
     createItens()
+    create_Explosion()
     inicia_Obstacles()
     inicia_revive_asteroids()
 
@@ -389,7 +412,7 @@ function create() {
     game.add.existing(player2)
 
     hud = {
-        text1: createHealthText(game.width*8/8.5, game.height-10, 'PLAYER 1: '+ player1.health,'bold 12px Arial','cyan'),
+        text1: createHealthText(game.width*8/8.48, game.height-10, 'PLAYER 1: '+ player1.health,'bold 12px Arial','cyan'),
         score1: createHealthText(game.width*1/15, game.height-10,'SCORE: ' + player1.score,'bold 12px Arial','cyan'),
         text2: createHealthText(game.width*1/18, 15, 'PLAYER 2: '+ player2.health,'bold 12px Arial','cyan'),
         score2: createHealthText(game.width*8/8.7, 15, 'SCORE: '+ player2.score,'bold 12px Arial','cyan'),
@@ -514,8 +537,8 @@ function moveSpace() {
 
 //bullet hit asteroid
 function bulletInObstacle(bullet, obstacle) {
-    //obstacle.damage(config.DAMAGE_BULLET)
     bullet.kill()
+    inicia_Explosion(bullet,0.7)
 }
 
 //player1 hit asteroids
@@ -527,6 +550,7 @@ function bulletInAsteroid1(bullets, asteroid) {
 
     if(!asteroid.alive){
         som_explosion.play()
+        inicia_Explosion(asteroid,0.8)
     }
 
     //selecionar itens do grupo weapon
@@ -582,6 +606,7 @@ function bulletInAsteroid2(bullets, asteroid) {
 
     if(!asteroid.alive){
         som_explosion.play()
+        inicia_Explosion(asteroid,0.8)
     }
 
     //selecionar itens do grupo weapon
@@ -635,6 +660,8 @@ function bulletInPlayer(player, bullet) {
         som_playerHitPlayer.play()
         player.damage(config.DAMAGE_BULLET)
         bullet.kill()
+        inicia_Explosion(bullet,0.7)
+        game.camera.shake(0.01, 200);
     }
 }
 
