@@ -58,7 +58,7 @@ config.NUMBER_ITENS = 30
 
 config.VELOCITY_OBSTACLES = 200
 config.TIME_OBSTACLES = 5
-config.TIME_REVIVE_ASTEROIDS = 1.5
+config.TIME_REVIVE_ASTEROIDS = 1
 config.HEALTH_OBSTACLES = 10
 config.DRAG_OBSTACLES = 10
 config.NUMBER_OBSTACLES = 50
@@ -361,7 +361,7 @@ function inicia_Explosion(obj,scale){
 
 //inicia som de fundo
 function iniciar_SomFundo(){
-    som_ambiente.loopFull(0.6)
+    som_ambiente.loopFull(1.5)
 }
 
 //inicia os obstaculos temporizados no jogo
@@ -661,7 +661,7 @@ function bulletInPlayer(player, bullet) {
         player.damage(config.DAMAGE_BULLET)
         bullet.kill()
         inicia_Explosion(bullet,0.7)
-        game.camera.shake(0.01, 200);
+        shakeCamera()
     }
 }
 
@@ -675,6 +675,7 @@ function playerInCoin(player,coin) {
 //dano do obstaculo no player
 function playerInObstacles(player, obstacles) {
     som_playerHitPlayer.play()
+    shakeCamera()
     player.damage(config.DAMAGE_OBSTACLES)
 }
 
@@ -782,7 +783,7 @@ function update_level(){
 }
 
 //funcao para disparar bullets
-function fireBullets (player) {
+function fireBullets(player) {
     if (player.alive){
         if (player.cursors.fire.isDown){
             player.currentSongWeapon.play()
@@ -792,10 +793,14 @@ function fireBullets (player) {
 }
 
 //funcao para reviver asteroids
-function revive_asteroids (){
+function revive_asteroids(){
     var aux_asteroid = map.getFirstDead()    
 
     if(aux_asteroid){
         aux_asteroid.reset(aux_asteroid.x, aux_asteroid.y)
     }
+}
+
+function shakeCamera(){
+    game.camera.shake(0.01, 200)
 }
