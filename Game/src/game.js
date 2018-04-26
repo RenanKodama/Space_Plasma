@@ -26,7 +26,19 @@ var itens_UpSpeedy
 var itens_Coin
 var hud
 var game_over
+var level
 
+var som_ambiente
+var som_explosion
+var som_coin
+var som_getWeapon
+var som_life
+var som_upSpeedy
+var som_removeUpSpeedy
+var som_weapon1
+var som_weapon2
+var som_playerHitPlayer
+var som_newObstacle
 
 
 config.MIN = -300
@@ -40,14 +52,18 @@ config.LIMIT_X_RIGHT = config.RES_X - 25
 config.HEALTH = 8
 config.ADDLIFE = 1
 config.MAX_TIME_UPSPEEDY = 4
+config.SPEED_UPSPEEDY = 350
+config.NUMBER_ITENS = 30
 
 config.VELOCITY_OBSTACLES = 200
 config.TIME_OBSTACLES = 5
+config.TIME_REVIVE_ASTEROIDS = 2.5
 config.HEALTH_OBSTACLES = 10
 config.DRAG_OBSTACLES = 10
 config.NUMBER_OBSTACLES = 50
-config.MASS_OBSTACLES = 25
-config.DAMAGE_OBSTACLES = 1
+config.MASS_OBSTACLES = 20
+config.DAMAGE_OBSTACLES = 0                     //##################################################################################
+config.HEALTH_OBSTACLES = 1
 
 config.SCORE_ASTEROID = 129
 config.SCORE_WEAPON = 152
@@ -72,7 +88,7 @@ var game = new Phaser.Game(config.RES_X, config.RES_Y, Phaser.CANVAS,
         update: update,
         render: render
     })
-
+    
 function preload() {
     game.load.image('Space', 'assets/Space.png')
     game.load.image('Plane01', 'assets/Plane01.png')
@@ -86,6 +102,17 @@ function preload() {
     game.load.image('Saw','assets/Saw.png')
     game.load.image('Coin','assets/Coin.png')
     game.load.text('map',adress_map)
+    game.load.audio('Song_Ambiente','assets/audio/Musica_Fundo.ogg')
+    game.load.audio('Song_Explosion','assets/audio/Musica_Explosion.ogg')
+    game.load.audio('Song_Coin','assets/audio/Som_Coin.ogg')
+    game.load.audio('Song_GetWeapon','assets/audio/Som_GetWeapon.ogg')
+    game.load.audio('Song_Life','assets/audio/Som_Life.ogg')
+    game.load.audio('Song_UpSpeedy','assets/audio/Som_Upspeedy.ogg')
+    game.load.audio('Song_RemoveUpSpeedy','assets/audio/Som_RemoveUpSpeedy.ogg')
+    game.load.audio('Song_Weapon1','assets/audio/Som_Weapon1.ogg')
+    game.load.audio('Song_Weapon2','assets/audio/Som_Weapon2.ogg')
+    game.load.audio('Song_PlayerHitPlayer','assets/audio/Som_PlayerHitPlayer.ogg')
+    game.load.audio('Song_NewObstacle','assets/audio/Som_NewObstacle.ogg')
 }   
 
 //carregar arquivo
@@ -110,7 +137,7 @@ function createMap() {
             }
 
             if (tipo != ' ') {
-                var asteroid = map.create(col*32, row*31.5, 'Asteroid01')
+                var asteroid = map.create(col*32, row*31.3, 'Asteroid01')
                 game.physics.arcade.enable(asteroid)
 
                 asteroid.scale.setTo(0.15, 0.15)
@@ -119,6 +146,7 @@ function createMap() {
                 asteroid.tint = 0xff0000
                 asteroid.body.immovable = true
                 asteroid.tag = 'asteroid'
+                asteroid.health = config.HEALTH_OBSTACLES
 
                 if(tipo == 'W'){
                     asteroid.drop = "Item_Weapon"
@@ -145,7 +173,7 @@ function createItens() {
     var aux_itensWeapon = game.add.group()
     aux_itensWeapon.enableBody = true
     aux_itensWeapon.physicsBodyType = Phaser.Physics.ARCADE
-    aux_itensWeapon.createMultiple(10, 'Weapon')
+    aux_itensWeapon.createMultiple(config.NUMBER_ITENS, 'Weapon')
     aux_itensWeapon.setAll('anchor.x', 0.5)
     aux_itensWeapon.setAll('anchor.y', 0.5)
     itens_Weapon = aux_itensWeapon
@@ -154,7 +182,7 @@ function createItens() {
     var aux_itensLife = game.add.group()
     aux_itensLife.enableBody = true
     aux_itensLife.physicsBodyType = Phaser.Physics.ARCADE
-    aux_itensLife.createMultiple(10, 'Life')
+    aux_itensLife.createMultiple(config.NUMBER_ITENS, 'Life')
     aux_itensLife.setAll('anchor.x', 0.5)
     aux_itensLife.setAll('anchor.y', 0.5)
     itens_Life = aux_itensLife
@@ -163,7 +191,7 @@ function createItens() {
     var aux_itensUpSpeedy = game.add.group()
     aux_itensUpSpeedy.enableBody = true
     aux_itensUpSpeedy.physicsBodyType = Phaser.Physics.ARCADE
-    aux_itensUpSpeedy.createMultiple(10, 'UpSpeedy')
+    aux_itensUpSpeedy.createMultiple(config.NUMBER_ITENS, 'UpSpeedy')
     aux_itensUpSpeedy.setAll('anchor.x', 0.5)
     aux_itensUpSpeedy.setAll('anchor.y', 0.5)
     itens_UpSpeedy = aux_itensUpSpeedy
@@ -172,7 +200,7 @@ function createItens() {
     var aux_itensCoin = game.add.group()
     aux_itensCoin.enableBody = true
     aux_itensCoin.physicsBodyType = Phaser.Physics.ARCADE
-    aux_itensCoin.createMultiple(10, 'Coin')
+    aux_itensCoin.createMultiple(config.NUMBER_ITENS, 'Coin')
     aux_itensCoin.setAll('anchor.x', 0.5)
     aux_itensCoin.setAll('anchor.y', 0.5)
     itens_Coin = aux_itensCoin
@@ -249,7 +277,9 @@ function createObstacles (){
     .to( { angle: -359 }, 2000 )
     .loop(-1)
     .start()
-
+    
+    update_level()
+    som_newObstacle.play()
     obstacles.add(aux_obstacles)
 }
 
@@ -263,6 +293,8 @@ function createWeapons(player) {
     player.weapon01.bulletAngleVariance = config.ANGLE_VARIANCE;
     player.weapon01.bulletLifespan = config.LIFE_BULLETS;
     player.weapon01.trackSprite(player, 0, 0, true)
+    player.songFire01 = som_weapon1
+    player.songFire01.volume = 0.15
 
     player.weapon02 =  game.add.weapon(config.MAX_BULLETS+1, 'Shot02')
     player.weapon02.enableBody = true;
@@ -272,8 +304,11 @@ function createWeapons(player) {
     player.weapon02.bulletAngleVariance = config.ANGLE_VARIANCE;
     player.weapon02.bulletLifespan = config.LIFE_BULLETS;
     player.weapon02.trackSprite(player, 0, 0, true)
+    player.songFire02 = som_weapon2
+    player.songFire02.volume = 0.2
 
     player.currentWeapon = player.weapon01
+    player.currentSongWeapon = player.songFire01
 }
 
 //funcao para criar caixa de texto
@@ -285,10 +320,37 @@ function createHealthText(x, y, text, tipo, cor) {
     return text
 }
 
+//funcao para criar os sons 
+function create_Sons (){
+    som_ambiente = game.add.audio('Song_Ambiente')
+    som_explosion = game.add.audio('Song_Explosion')
+    som_coin = game.add.audio('Song_Coin')
+    som_getWeapon = game.add.audio('Song_GetWeapon')
+    som_life = game.add.audio('Song_Life')
+    som_upSpeedy = game.add.audio('Song_UpSpeedy')
+    som_removeUpSpeedy = game.add.audio('Song_RemoveUpSpeedy')
+    som_weapon1 = game.add.audio('Song_Weapon1')
+    som_weapon2 = game.add.audio('Song_Weapon2')
+    som_playerHitPlayer = game.add.audio('Song_PlayerHitPlayer')
+    som_newObstacle = game.add.audio('Song_NewObstacle')
+
+    iniciar_SomFundo()
+}
+
+//inicia som de fundo
+function iniciar_SomFundo(){
+    som_ambiente.loopFull(0.6)
+}
+
 //inicia os obstaculos temporizados no jogo
 function inicia_Obstacles () {
     obstacles = game.add.group()
     game.time.events.repeat(Phaser.Timer.SECOND * config.TIME_OBSTACLES, config.NUMBER_OBSTACLES, createObstacles, this);
+}
+
+//funcao para iniciar revive asteroids
+function inicia_revive_asteroids(){
+    game.time.events.loop(Phaser.Timer.SECOND * config.TIME_REVIVE_ASTEROIDS, revive_asteroids);
 }
 
 function create() {
@@ -301,9 +363,13 @@ function create() {
     space.scale.x = game.width/space.width
     space.scale.y = game.height/space.height
 
+    level = 0
+
     createMap()
+    create_Sons()
     createItens()
     inicia_Obstacles()
+    inicia_revive_asteroids()
 
     player1 = createPlayer(game.width/2, game.height/2, 'Plane01', 0x20ff50, 'bottom', 
         {   
@@ -326,7 +392,8 @@ function create() {
         text1: createHealthText(game.width*8/8.5, game.height-10, 'PLAYER 1: '+ player1.health,'bold 12px Arial','cyan'),
         score1: createHealthText(game.width*1/15, game.height-10,'SCORE: ' + player1.score,'bold 12px Arial','cyan'),
         text2: createHealthText(game.width*1/18, 15, 'PLAYER 2: '+ player2.health,'bold 12px Arial','cyan'),
-        score2: createHealthText(game.width*8/8.7, 15, 'SCORE: '+ player2.score,'bold 12px Arial','cyan')
+        score2: createHealthText(game.width*8/8.7, 15, 'SCORE: '+ player2.score,'bold 12px Arial','cyan'),
+        level: createHealthText(game.width/2, 15, 'LEVEL: '+ level,'bold 9px Arial','cyan')
     }
 
     game.time.advancedTiming = true
@@ -447,16 +514,20 @@ function moveSpace() {
 
 //bullet hit asteroid
 function bulletInObstacle(bullet, obstacle) {
-    obstacle.damage(config.DAMAGE_BULLET)
+    //obstacle.damage(config.DAMAGE_BULLET)
     bullet.kill()
 }
 
 //player1 hit asteroids
 function bulletInAsteroid1(bullets, asteroid) {
     bullets.kill()
-    asteroid.kill()
+    asteroid.damage(config.DAMAGE_BULLET)
 
     player1.score += config.SCORE_ASTEROID
+
+    if(!asteroid.alive){
+        som_explosion.play()
+    }
 
     //selecionar itens do grupo weapon
     if(asteroid.drop == "Item_Weapon"){
@@ -505,9 +576,13 @@ function bulletInAsteroid1(bullets, asteroid) {
 //player2 hit asteroids
 function bulletInAsteroid2(bullets, asteroid) {
     bullets.kill()
-    asteroid.kill()
+    asteroid.damage(config.DAMAGE_BULLET)
 
     player2.score += config.SCORE_ASTEROID
+
+    if(!asteroid.alive){
+        som_explosion.play()
+    }
 
     //selecionar itens do grupo weapon
     if(asteroid.drop == "Item_Weapon"){
@@ -556,6 +631,8 @@ function bulletInAsteroid2(bullets, asteroid) {
 //player hit player
 function bulletInPlayer(player, bullet) {
     if (player.alive) {
+        som_playerHitPlayer.volume = 3.5
+        som_playerHitPlayer.play()
         player.damage(config.DAMAGE_BULLET)
         bullet.kill()
     }
@@ -564,18 +641,21 @@ function bulletInPlayer(player, bullet) {
 //player colidiu com o coin
 function playerInCoin(player,coin) {
     player.score += config.SCORE_COIN
+    som_coin.play()
     coin.kill()
 }
 
 //dano do obstaculo no player
 function playerInObstacles(player, obstacles) {
+    som_playerHitPlayer.play()
     player.damage(config.DAMAGE_OBSTACLES)
 }
 
 //player colidiu com o upspeedy
 function playerInUpSpeedy(player,upSpeedy) {
+    som_upSpeedy.play()
     upSpeedy.kill()
-    player.SPEED_X += 350
+    player.SPEED_X += config.SPEED_UPSPEEDY
     player.score += config.SCORE_UPSPEEDY
 
     game.time.events.add(Phaser.Timer.SECOND * config.MAX_TIME_UPSPEEDY, removeUpSpeedy, this, player);
@@ -586,13 +666,16 @@ function playerInWeapon(player,weapon) {
     weapon.kill()
     player.score += config.SCORE_WEAPON
     
+    som_getWeapon.play()
     if (weapon.type == "weapon02"){
         player.currentWeapon = player.weapon02
+        player.currentSongWeapon = player.songFire02
     }
 }
 
 //player colidiu com a vida
 function playerInLife(player,life) {
+    som_life.play()
     life.kill()
     player.score += config.SCORE_LIFE
 
@@ -626,6 +709,8 @@ function checkPlayers(player1,player2) {
 
 //resetar a velocidade do player
 function removeUpSpeedy(player) {
+    som_removeUpSpeedy.volume = 2.6
+    som_removeUpSpeedy.play()
     player.SPEED_X = config.SPEED_X
 }
 
@@ -661,13 +746,29 @@ function updateHud() {
     hud.score1.text = 'SCORE: ' + player1.score
     hud.text2.text = 'PLAYER 2: ' + player2.health
     hud.score2.text = 'SCORE: ' + player2.score
+    hud.level.text = 'LEVEL: ' + level
+}
+
+//funcao para atualizar o level
+function update_level(){
+    level += 1
 }
 
 //funcao para disparar bullets
 function fireBullets (player) {
     if (player.alive){
         if (player.cursors.fire.isDown){
+            player.currentSongWeapon.play()
             player.currentWeapon.fire();
         }
     }   
+}
+
+//funcao para reviver asteroids
+function revive_asteroids (){
+    var aux_asteroid = map.getFirstDead()    
+
+    if(aux_asteroid){
+        aux_asteroid.reset(aux_asteroid.x, aux_asteroid.y)
+    }
 }
