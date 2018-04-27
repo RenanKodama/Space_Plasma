@@ -345,8 +345,7 @@ function create_Explosion(){
     explosion_Sheet.createMultiple(30, 'Explosion_Sheet')
     explosion_Sheet.forEach(function(exp) {
         var anim = exp.animations.add('full', null , 60, false) 
-        exp.scale.setTo(0.5, 0.5)
-        //exp.anchor.setTo(0.03, 0.03)   
+        exp.scale.setTo(0.5, 0.5) 
         anim.onComplete.add( () => exp.kill() )    
     })  
 }
